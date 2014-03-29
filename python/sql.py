@@ -25,6 +25,7 @@ import air_modes
 import sqlite3
 from air_modes.exceptions import *
 from gnuradio.gr.pubsub import pubsub
+import datetime
 
 class output_sql:
   def __init__(self, cpr, filename, lock, publisher):
@@ -108,7 +109,8 @@ class output_sql:
     icao24 = data["aa"]
     bdsreg = data["me"].get_type()
     #self["bds%.2i" % bdsreg] = icao24 #publish under "bds08", "bds06", etc.
-
+    nw = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+    
     if bdsreg == 0x08:
       (msg, typename) = air_modes.parseBDS08(data)
       return "INSERT OR REPLACE INTO ident (icao, ident, type) VALUES (" + "%i" % icao24 + ", '" + msg + "', '" + typename + "')"
@@ -118,20 +120,20 @@ class output_sql:
       if decoded_lat is None: #no unambiguously valid position available
         raise CPRNoPositionError
       else:
-        return "INSERT INTO positions (icao, seen, alt, lat, lon) VALUES (" + "%i" % icao24 + ", datetime('now'), " + str(altitude) + ", " + "%.6f" % decoded_lat + ", " + "%.6f" % decoded_lon + ")"
+        return "INSERT INTO positions (icao, seen, alt, lat, lon) VALUES (" + "%i" % icao24 + ", '"+nw+"', " + str(altitude) + ", " + "%.6f" % decoded_lat + ", " + "%.6f" % decoded_lon + ")"
     elif bdsreg == 0x05:
       [altitude, decoded_lat, decoded_lon, rnge, bearing] = air_modes.parseBDS05(data, self._cpr)
       if decoded_lat is None: #no unambiguously valid position available
         raise CPRNoPositionError
       else:
-        return "INSERT INTO positions (icao, seen, alt, lat, lon) VALUES (" + "%i" % icao24 + ", datetime('now'), " + str(altitude) + ", " + "%.6f" % decoded_lat + ", " + "%.6f" % decoded_lon + ")"
+        return "INSERT INTO positions (icao, seen, alt, lat, lon) VALUES (" + "%i" % icao24 + ", '"+nw+"', " + str(altitude) + ", " + "%.6f" % decoded_lat + ", " + "%.6f" % decoded_lon + ")"
     elif bdsreg == 0x09:
       subtype = data["bds09"].get_type()
       if subtype == 0:
         [velocity, heading, vert_spd, turnrate] = air_modes.parseBDS09_0(data)
-        return "INSERT INTO vectors (icao, seen, speed, heading, vertical) VALUES (" + "%i" % icao24 + ", datetime('now'), " + "%.0f" % velocity + ", " + "%.0f" % heading + ", " + "%.0f" % vert_spd + ")"
+        return "INSERT INTO vectors (icao, seen, speed, heading, vertical) VALUES (" + "%i" % icao24 + ", '"+nw+"', " + "%.0f" % velocity + ", " + "%.0f" % heading + ", " + "%.0f" % vert_spd + ")"
       elif subtype == 1:
         [velocity, heading, vert_spd] = air_modes.parseBDS09_1(data)
-        return "INSERT INTO vectors (icao, seen, speed, heading, vertical) VALUES (" + "%i" % icao24 + ", datetime('now'), " + "%.0f" % velocity + ", " + "%.0f" % heading + ", " + "%.0f" % vert_spd + ")"
+        return "INSERT INTO vectors (icao, seen, speed, heading, vertical) VALUES (" + "%i" % icao24 + ", '"+nw+"', " + "%.0f" % velocity + ", " + "%.0f" % heading + ", " + "%.0f" % vert_spd + ")"
       else:
         raise NoHandlerError

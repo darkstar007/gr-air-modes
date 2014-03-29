@@ -91,7 +91,7 @@ def cpr_resolve_global(evenpos, oddpos, mypos, mostrecent, surface):
 
 	evenpos = [float(evenpos[0]), float(evenpos[1])]
 	oddpos = [float(oddpos[0]), float(oddpos[1])]
-	
+
 	j = math.floor(((nz(1)*evenpos[0] - nz(0)*oddpos[0])/2**17) + 0.5) #latitude index
 
 	rlateven = dlateven * ((j % nz(0))+evenpos[0]/2**17)
@@ -232,7 +232,6 @@ class cpr_decoder:
 		else:
 			rnge = None
 			bearing = None
-
 		return [decoded_lat, decoded_lon, rnge, bearing]
 
 #encode CPR position
