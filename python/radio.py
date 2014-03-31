@@ -34,6 +34,42 @@ import threading
 import time
 import re
 
+class ReadByteFile(gr.hier_block2):
+    def __init__(self, options):
+        gr.hier_block2.__init__(self, "ReadByteFile",
+                                gr.io_signature(0, 0, 0),
+                                gr.io_signature(1, 1, gr.sizeof_gr_complex))
+
+        print options
+        ##################################################
+        # Blocks
+        ##################################################
+
+        self.blocks_uchar_to_float_1 = blocks.uchar_to_float()
+        self.blocks_uchar_to_float_0 = blocks.uchar_to_float()
+        self.blocks_throttle_0 = blocks.throttle(gr.sizeof_char*1, options.rate)
+        self.blocks_multiply_const_vxx_1 = blocks.multiply_const_vff((8e-3, ))
+        self.blocks_multiply_const_vxx_0 = blocks.multiply_const_vff((8e-3, ))
+        self.blocks_float_to_complex_0 = blocks.float_to_complex(1)
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_char*1, options.source, False)
+        self.blocks_deinterleave_0 = blocks.deinterleave(gr.sizeof_char*1)
+        self.blocks_add_const_vxx_1 = blocks.add_const_vff((-127, ))
+        self.blocks_add_const_vxx_0 = blocks.add_const_vff((-127, ))
+
+        self.connect((self.blocks_file_source_0, 0), (self.blocks_throttle_0, 0))
+        self.connect((self.blocks_throttle_0, 0), (self.blocks_deinterleave_0, 0))
+        self.connect((self.blocks_deinterleave_0, 0), (self.blocks_uchar_to_float_0, 0))
+        self.connect((self.blocks_deinterleave_0, 1), (self.blocks_uchar_to_float_1, 0))
+        self.connect((self.blocks_uchar_to_float_0, 0), (self.blocks_add_const_vxx_0, 0))
+        self.connect((self.blocks_uchar_to_float_1, 0), (self.blocks_add_const_vxx_1, 0))
+        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.blocks_float_to_complex_0, 0))
+        self.connect((self.blocks_multiply_const_vxx_1, 0), (self.blocks_float_to_complex_0, 1))
+        self.connect((self.blocks_add_const_vxx_0, 0), (self.blocks_multiply_const_vxx_0, 0))
+        self.connect((self.blocks_add_const_vxx_1, 0), (self.blocks_multiply_const_vxx_1, 0))
+        self.connect((self.blocks_float_to_complex_0, 0), (self, 0))
+
+
+
 class modes_radio (gr.top_block, pubsub):
   def __init__(self, options, context):
     gr.top_block.__init__(self)
@@ -202,7 +238,8 @@ class modes_radio (gr.top_block, pubsub):
         self._u = gr.udp_source(gr.sizeof_gr_complex, ip, int(port))
         print "Using UDP source %s:%s" % (ip, port)
       else:
-        self._u = blocks.file_source(gr.sizeof_gr_complex, options.source)
+        #self._u = blocks.file_source(gr.sizeof_gr_complex, options.source)
+        self._u = ReadByteFile(options)
         print "Using file source %s" % options.source
 
     print "Rate is %i" % (options.rate,)
