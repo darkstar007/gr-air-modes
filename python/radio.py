@@ -40,7 +40,6 @@ class ReadByteFile(gr.hier_block2):
                                 gr.io_signature(0, 0, 0),
                                 gr.io_signature(1, 1, gr.sizeof_gr_complex))
 
-        print options
         ##################################################
         # Blocks
         ##################################################
@@ -56,8 +55,7 @@ class ReadByteFile(gr.hier_block2):
         self.blocks_add_const_vxx_1 = blocks.add_const_vff((-127, ))
         self.blocks_add_const_vxx_0 = blocks.add_const_vff((-127, ))
 
-        self.connect((self.blocks_file_source_0, 0), (self.blocks_throttle_0, 0))
-        self.connect((self.blocks_throttle_0, 0), (self.blocks_deinterleave_0, 0))
+        self.connect((self.blocks_file_source_0, 0), (self.blocks_deinterleave_0, 0))
         self.connect((self.blocks_deinterleave_0, 0), (self.blocks_uchar_to_float_0, 0))
         self.connect((self.blocks_deinterleave_0, 1), (self.blocks_uchar_to_float_1, 0))
         self.connect((self.blocks_uchar_to_float_0, 0), (self.blocks_add_const_vxx_0, 0))
@@ -66,7 +64,8 @@ class ReadByteFile(gr.hier_block2):
         self.connect((self.blocks_multiply_const_vxx_1, 0), (self.blocks_float_to_complex_0, 1))
         self.connect((self.blocks_add_const_vxx_0, 0), (self.blocks_multiply_const_vxx_0, 0))
         self.connect((self.blocks_add_const_vxx_1, 0), (self.blocks_multiply_const_vxx_1, 0))
-        self.connect((self.blocks_float_to_complex_0, 0), (self, 0))
+        self.connect((self.blocks_float_to_complex_0, 0), (self.blocks_throttle_0, 0))
+        self.connect((self.blocks_throttle_0, 0), (self, 0))
 
 
 
