@@ -44,7 +44,6 @@ class ReadByteFile(gr.hier_block2):
         ##################################################
         # Blocks
         ##################################################
-
         self.blocks_file_source_0 = blocks.file_source(gr.sizeof_char*1, options.source, False)
         self.blocks_deinterleave_0 = blocks.deinterleave(gr.sizeof_char*1)
         self.blocks_uchar_to_float_1 = blocks.uchar_to_float()
