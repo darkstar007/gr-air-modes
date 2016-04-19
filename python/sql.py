@@ -109,7 +109,7 @@ class output_sql:
     icao24 = data["aa"]
     bdsreg = data["me"].get_type()
     #self["bds%.2i" % bdsreg] = icao24 #publish under "bds08", "bds06", etc.
-    nw = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+    nw = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')
     
     if bdsreg == 0x08:
       (msg, typename) = air_modes.parseBDS08(data)
