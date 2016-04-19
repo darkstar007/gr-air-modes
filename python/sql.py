@@ -34,12 +34,13 @@ class output_sql:
     self._lock = lock;
     #create the database
     self.filename = filename
-    self._db = sqlite3.connect(filename)
+    self._db = sqlite3.connect(filename, 
+                               detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
     #now execute a schema to create the tables you need
     c = self._db.cursor()
     query = """CREATE TABLE IF NOT EXISTS "positions" (
               "icao" INTEGER KEY NOT NULL,
-              "seen" TEXT NOT NULL,
+              "seen" TIMESTAMP NOT NULL,
               "alt"  INTEGER,
               "lat"  REAL,
               "lon"  REAL
@@ -47,7 +48,7 @@ class output_sql:
     c.execute(query)
     query = """CREATE TABLE IF NOT EXISTS "vectors" (
               "icao"     INTEGER KEY NOT NULL,
-              "seen"     TEXT NOT NULL,
+              "seen"     TIMESTAMP NOT NULL,
               "speed"    REAL,
               "heading"  REAL,
               "vertical" REAL
@@ -74,12 +75,13 @@ class output_sql:
         #the thread context of output(), rather than the thread context of the
         #constructor.
         if self._db is None:
-          self._db = sqlite3.connect(self.filename)
+          self._db = sqlite3.connect(self.filename,
+                                     detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
 
-        query = self.make_insert_query(message)
+        query, vals = self.make_insert_query(message)
         if query is not None:
             c = self._db.cursor()
-            c.execute(query)
+            c.execute(query, vals)
             c.close()
             self._db.commit()
 
@@ -90,12 +92,13 @@ class output_sql:
     #assembles a SQL query tailored to our database
     #this version ignores anything that isn't Type 17 for now, because we just don't care
     query = None
+    vals = None
     msgtype = msg.data["df"]
     if msgtype == 17:
-      query = self.sql17(msg.data)
-      #self["new_adsb"] = data["aa"] #publish change notification
+	query, vals = self.sql17(msg.data)
+	#self["new_adsb"] = data["aa"] #publish change notification
 
-    return query
+    return query, vals
 
 #TODO: if there's a way to publish selective reports on upsert to distinguish,
 #for instance, between a new ICAO that's just been heard, and a refresh of an
@@ -106,34 +109,37 @@ class output_sql:
 #It's probably time to look back at the Qt SQL table model and see if it can be
 #bent into shape for you.
   def sql17(self, data):
+    nw = datetime.datetime.utcnow()
     icao24 = data["aa"]
     bdsreg = data["me"].get_type()
     #self["bds%.2i" % bdsreg] = icao24 #publish under "bds08", "bds06", etc.
-    nw = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')
+    #nw = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')
     
     if bdsreg == 0x08:
       (msg, typename) = air_modes.parseBDS08(data)
-      return "INSERT OR REPLACE INTO ident (icao, ident, type) VALUES (" + "%i" % icao24 + ", '" + msg + "', '" + typename + "')"
+      return "INSERT OR REPLACE INTO ident (icao, ident, type) VALUES (?, ?, ?)", (icao24, msg, typename)
     elif bdsreg == 0x06:
       [ground_track, decoded_lat, decoded_lon, rnge, bearing] = air_modes.parseBDS06(data, self._cpr)
       altitude = 0
       if decoded_lat is None: #no unambiguously valid position available
         raise CPRNoPositionError
       else:
-        return "INSERT INTO positions (icao, seen, alt, lat, lon) VALUES (" + "%i" % icao24 + ", '"+nw+"', " + str(altitude) + ", " + "%.6f" % decoded_lat + ", " + "%.6f" % decoded_lon + ")"
+        return "INSERT INTO positions (icao, seen, alt, lat, lon) VALUES (?, ?, ?, ?, ?)", (icao24, nw, altitude, decoded_lat, decoded_lon)
     elif bdsreg == 0x05:
       [altitude, decoded_lat, decoded_lon, rnge, bearing] = air_modes.parseBDS05(data, self._cpr)
       if decoded_lat is None: #no unambiguously valid position available
         raise CPRNoPositionError
       else:
-        return "INSERT INTO positions (icao, seen, alt, lat, lon) VALUES (" + "%i" % icao24 + ", '"+nw+"', " + str(altitude) + ", " + "%.6f" % decoded_lat + ", " + "%.6f" % decoded_lon + ")"
+        return "INSERT INTO positions (icao, seen, alt, lat, lon) VALUES (?, ?, ?, ?, ?)", (icao24, nw, altitude, decoded_lat, decoded_lon)
     elif bdsreg == 0x09:
       subtype = data["bds09"].get_type()
       if subtype == 0:
         [velocity, heading, vert_spd, turnrate] = air_modes.parseBDS09_0(data)
-        return "INSERT INTO vectors (icao, seen, speed, heading, vertical) VALUES (" + "%i" % icao24 + ", '"+nw+"', " + "%.0f" % velocity + ", " + "%.0f" % heading + ", " + "%.0f" % vert_spd + ")"
+        return "INSERT INTO vectors (icao, seen, speed, heading, vertical) VALUES (?, ?, ?, ?, ?)", (icao24, nw, velocity, heading, vert_spd)
       elif subtype == 1:
         [velocity, heading, vert_spd] = air_modes.parseBDS09_1(data)
-        return "INSERT INTO vectors (icao, seen, speed, heading, vertical) VALUES (" + "%i" % icao24 + ", '"+nw+"', " + "%.0f" % velocity + ", " + "%.0f" % heading + ", " + "%.0f" % vert_spd + ")"
+        return "INSERT INTO vectors (icao, seen, speed, heading, vertical) VALUES (?, ?, ?, ?, ?)", (icao24, nw, velocity, heading, vert_spd)
       else:
         raise NoHandlerError
+
+    return None, None
