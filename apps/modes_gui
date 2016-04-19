@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Copyright 2012 Nick Foster
 # 
 # This file is part of gr-air-modes
@@ -95,7 +95,7 @@ class mainwindow(QtGui.QMainWindow):
         self.queue = gr.msg_queue(10)
         self.running = False
         self.kmlgen = None #necessary bc we stop its thread in shutdown
-        self.dbname = "air_modes.db"
+        self.dbname = "air_modes_"+datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')+".db"
         self.num_reports = 0
         self.last_report = 0
         self.context = zmq.Context(1)
