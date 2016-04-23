@@ -1,3 +1,13 @@
+
+
+The top level directory *must* be called xxxxxxx-0.0 otherwise it
+doesn't compile! (For example gr-air-modes-0.1 fails to compile
+as it complains that "no rule to make air_modes_swig.py"). I've looked
+for the issue (which I assume is lurking in the CMake stuff) but
+I haven't managed to track it down. Let me know if you do!
+
+
+
 ========================================================================
 Copyright 2010, 2011, 2012 Nick Foster
 
